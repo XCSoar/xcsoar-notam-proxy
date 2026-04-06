@@ -1,25 +1,27 @@
-# WARNING: This is a template file. NEVER commit real credentials.
-# After copying to .htaccess, fill in real values and ensure this file is:
-#  1. Never committed to version control
-#  2. Protected with appropriate file permissions (e.g., chmod 600)
-#  3. Not world-readable on shared systems
+# Optional Apache hardening example
+#
+# Application configuration now lives in `.env`, not in `.htaccess`.
+# This file is only for Apache access rules when your host uses `.htaccess`.
 
-# notam.php
+Options -Indexes
 
-# Environment
-SetEnv APP_ENV production
+<IfModule mod_authz_core.c>
+    <FilesMatch "^\.">
+        Require all denied
+    </FilesMatch>
 
-# Database credentials
-SetEnv DB_SERVER localhost
-SetEnv DB_NAME xcsoar_notam
-SetEnv DB_USER notam
-SetEnv DB_PASS your_db_password
+    <FilesMatch "^(?:\.env|\.git|\.gitignore|composer\.(?:json|lock)|package(?:-lock)?\.json|yarn\.lock)$">
+        Require all denied
+    </FilesMatch>
 
-# FAA NMS API config
-SetEnv FAA_API_BASE https://api-staging.cgifederal-aim.com/nmsapi
-SetEnv FAA_AUTH_URL https://api-staging.cgifederal-aim.com/v1/auth/token
-SetEnv NMS_RESPONSE_FORMAT GEOJSON
+    <FilesMatch "\.(?:env|log|sql|gz|sqlite|bak|old|dist)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
 
-# FAA credentials
-SetEnv FAA_ID your_faa_client_id
-SetEnv FAA_SECRET your_faa_client_secret
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule (^|/)\. - [F,L]
+    RewriteRule ^(?:log|tmp)(?:/|$) - [F,L,NC]
+    RewriteRule \.(?:env|log|sql|gz|sqlite|bak|old|dist)$ - [F,L,NC]
+</IfModule>
