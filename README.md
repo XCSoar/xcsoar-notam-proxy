@@ -197,6 +197,12 @@ This should stay disabled by default. In production, enabling it without `NOTAM_
 - IDs only present from live FAA data
 - IDs present in both but with different payloads
 
+Optional query parameter:
+
+- `mode=normalized` (default): compares cached and live after applying local geometry + active-status filtering on both sides
+- `mode=raw`: compares unnormalized sets (`notam_fetch_local_features` vs FAA response)
+- `mode=both`: returns both normalized comparison (`comparison`) and raw comparison (`comparisonRaw`)
+
 ## Database schema
 
 The scripts will create the required tables automatically if the database user has permission. If you prefer to create them up front:

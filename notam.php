@@ -21,6 +21,8 @@ try {
     [$deltaRequest, $knownNotams] = notam_parse_delta_request();
 
     $items = notam_fetch_local_features($pdo, $query['latitude'], $query['longitude'], $query['radius']);
+    // Enforce runtime active-status checks (effectiveEnd/cancelationDate) for cached rows.
+    $items = notam_filter_features_for_query($items, $query['latitude'], $query['longitude'], $query['radius'], true);
     $response = $deltaRequest
         ? notam_build_delta_response_payload($items, $knownNotams)
         : notam_build_response_payload($items);
