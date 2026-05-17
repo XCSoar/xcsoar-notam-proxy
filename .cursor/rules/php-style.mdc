@@ -1,0 +1,41 @@
+---
+description: PHP coding style for this project
+globs: **/*.php
+alwaysApply: false
+---
+
+# PHP style
+
+- `declare(strict_types=1);` at the top of every PHP file.
+- **No closing `?>` tag** in pure-PHP files.
+- Procedural functions only (no classes). Snake_case, prefix every public helper with `notam_`.
+- Type-hint all parameters and return types, including `void`.
+- 4-space indentation, K&R braces, single quotes by default.
+
+## Errors and exceptions
+
+- Throw `InvalidArgumentException` for bad input/config (mapped to HTTP 400).
+- Throw `RuntimeException` for transport, DB, FAA, or freshness failures (mapped to HTTP 503).
+- In web entry points, catch in this exact order and use `notam_send_error_response`:
+
+```php
+} catch (InvalidArgumentException $e) {
+    notam_send_error_response(400, $e);
+} catch (RuntimeException $e) {
+    notam_send_error_response(503, $e);
+} catch (Throwable $e) {
+    notam_send_error_response(500, $e);
+}
+```
+
+- Never echo raw exception messages in production paths. `notam_send_error_response` already sanitizes based on `APP_ENV`.
+
+## State and config
+
+- Read env via `getenv('NAME') ?: 'default'`. Provide a sane default or throw `InvalidArgumentException` if it's required.
+- Don't introduce module-level mutable globals. Pass `PDO` and other dependencies as function arguments.
+- Don't add a second autoloader, framework, or composer dependency without discussion — this project intentionally has zero runtime deps.
+
+## Comments
+
+- Don't narrate code. Only comment non-obvious intent, trade-offs, or external constraints (e.g. FAA API quirks, antimeridian handling).

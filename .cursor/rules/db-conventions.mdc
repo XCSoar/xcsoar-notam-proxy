@@ -1,0 +1,38 @@
+---
+description: MySQL/PDO conventions used throughout the proxy
+globs: notam_lib.php,**/sync_notams.php,**/reconcile_notams.php,**/status.php,**/notam.php,**/check_cache_status.php
+alwaysApply: false
+---
+
+# Database conventions
+
+Target is **MySQL 5.7+ / MariaDB 10.3+**. Don't write portable-but-weaker SQL; the project relies on MySQL-specific features.
+
+## PDO
+
+- Get the connection via `notam_get_db_connection()`. Don't `new PDO(...)` inline.
+- Connection is configured with `ERRMODE_EXCEPTION`, `FETCH_ASSOC`, `EMULATE_PREPARES = false`. Don't override these per call.
+- Always use prepared statements for any value, including integers from env. Never interpolate user input.
+
+## Identifiers and DDL
+
+- Dynamic table names go through `notam_quote_identifier(...)`. Pattern:
+
+```php
+$table = notam_quote_identifier($tableName);
+$sql = "INSERT INTO $table (...) VALUES (...)";
+```
+
+- DDL must end in `ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`.
+- The three live tables are `notam_cache`, `notam_state`, `notam_items`. Reconcile-only tables are `notam_items_reconcile` (stage) and `notam_items_previous` (transient backup).
+
+## Idioms
+
+- Upserts use `INSERT ... ON DUPLICATE KEY UPDATE col = VALUES(col)`.
+- Time math uses `UTC_TIMESTAMP()` and `DATE_ADD(?, INTERVAL ? SECOND)` / `DATE_SUB(?, INTERVAL ? DAY)`. Don't introduce `NOW()` (server-local time).
+- Cross-process locks use `GET_LOCK('xcsoar_notam_sync', 0)` / `RELEASE_LOCK(...)`. Wrap CLI work so the lock is always released.
+
+## Reads
+
+- For NOTAM lookups always start from `notam_fetch_local_features` (bbox prefilter in SQL + per-feature geometry in PHP). Don't add ad-hoc geo queries.
+- After fetching cached features for a user query, run `notam_filter_features_for_query(..., true)` so expired/cancelled NOTAMs are filtered at request time, not just at write time.

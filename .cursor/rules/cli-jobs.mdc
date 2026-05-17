@@ -1,0 +1,54 @@
+---
+description: Conventions for CLI sync/reconcile/maintenance scripts
+globs: sync_notams.php,reconcile_notams.php,check_cache_status.php
+alwaysApply: false
+---
+
+# CLI jobs
+
+## Skeleton
+
+```php
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/notam_lib.php';
+
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=UTF-8');
+    echo "this_script.php must be run from CLI.\n";
+    exit();
+}
+
+$lockName = 'xcsoar_notam_sync';
+try {
+    $pdo = notam_get_db_connection();
+    notam_ensure_schema($pdo);
+    notam_acquire_lock($pdo, $lockName);
+    notam_set_sync_activity($pdo, 'delta', true); // or 'reconcile'
+    // ... work ...
+    notam_set_sync_activity($pdo, 'delta', false);
+    notam_release_lock($pdo, $lockName);
+    exit(0);
+} catch (Throwable $e) {
+    if (isset($pdo) && $pdo instanceof PDO) {
+        try { notam_set_sync_activity($pdo, 'delta', false); } catch (Throwable $ignored) {}
+        try { notam_release_lock($pdo, $lockName); } catch (Throwable $ignored) {}
+    }
+    fwrite(STDERR, $e->getMessage() . "\n");
+    exit(1);
+}
+```
+
+## Rules
+
+- Always reject web execution (`PHP_SAPI !== 'cli'`).
+- Always pair `notam_acquire_lock` with a `notam_release_lock` in the catch path; same for `notam_set_sync_activity(..., true)` / `..., false`.
+- Persist progress via `notam_set_state($pdo, 'faa_last_delta_cursor', $cursor)` and `'faa_last_delta_sync_at'` / `'faa_last_full_reconcile_*'`. Don't invent new state keys without a reason.
+- Reconcile must:
+  - bump `memory_limit` from `NOTAM_RECONCILE_MEMORY_LIMIT` and `set_time_limit(0)`,
+  - write to the staging table from `notam_get_reconcile_stage_table()`,
+  - finish with `notam_swap_reconcile_stage_into_live(...)`,
+  - reset the delta cursor via `notam_compute_reconcile_delta_cursor($reconcileStartedAt)`.
+- Logging: one-line progress to STDOUT; errors to STDERR. Include timestamps and durations. Exit codes 0/1.
+- Use `notam_process_classification_items` (streaming) for large FAA payloads, not in-memory parsing.

@@ -1,0 +1,43 @@
+---
+description: Conventions for web entry points (HTTP-served PHP files)
+globs: notam.php,notam_live.php,notam_compare.php,status.php,faa_connectivity_test.php
+alwaysApply: false
+---
+
+# Web endpoints
+
+Standard skeleton:
+
+```php
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/notam_lib.php';
+
+try {
+    $pdo = notam_get_db_connection();
+    notam_ensure_schema($pdo);
+    notam_require_geojson_format();
+    // ... endpoint logic ...
+    header('Content-Type: application/json');
+    echo json_encode($response);
+} catch (InvalidArgumentException $e) {
+    notam_send_error_response(400, $e);
+} catch (RuntimeException $e) {
+    notam_send_error_response(503, $e);
+} catch (Throwable $e) {
+    notam_send_error_response(500, $e);
+}
+```
+
+## Rules
+
+- `notam.php` and `status.php` MUST be DB-only. Do not import or call any FAA HTTP helper here.
+- FAA-touching endpoints (`notam_live.php`, `notam_compare.php`, `faa_connectivity_test.php`) MUST guard with both:
+  1. an enable env flag (e.g. `NOTAM_ALLOW_LIVE_PROXY`), and
+  2. `notam_require_optional_shared_secret('NOTAM_LIVE_PROXY_KEY')` (or `FAA_CONNECTIVITY_KEY`).
+  In production with no secret configured, the endpoint must stay disabled.
+- Set `Content-Type: application/json` before writing the body.
+- When serving cached data, also emit relevant `X-NOTAM-*` headers (`X-NOTAM-Source`, `X-NOTAM-Last-Delta-Sync`, `X-NOTAM-Last-Full-Reconcile`, `X-NOTAM-Sync-Age-Seconds`, optionally `X-NOTAM-Maintenance`).
+- Validate query params via `notam_parse_query_parameters()`. Don't read `$_GET` directly for lat/lon/radius.
+- Parse delta requests via `notam_parse_delta_request()`. Don't re-implement JSON body parsing.
+- Never call `exit` directly inside `try`; let `notam_send_error_response` do it on errors.

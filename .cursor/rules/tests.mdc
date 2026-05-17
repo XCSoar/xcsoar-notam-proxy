@@ -1,0 +1,42 @@
+---
+description: How to add and run tests in this repo
+globs: tests/**/*.php
+alwaysApply: false
+---
+
+# Tests
+
+The suite is a hand-rolled, dependency-free harness in `tests/run.php`. Run it with:
+
+```bash
+php tests/run.php
+```
+
+It exits non-zero if any case fails. **Tests must not touch a real database or the FAA API.**
+
+## Adding a case
+
+Append to the `$tests[]` array using the existing helpers:
+
+```php
+$tests[] = test_run('descriptive case name', function (): void {
+    $feature = test_make_feature('A', '2026-04-06T12:00:00Z', [
+        'type' => 'Point',
+        'coordinates' => [8.0, 50.0],
+    ]);
+    $bounds = notam_circle_bounds(50.0, 8.0, 5.0);
+
+    test_assert_true(
+        notam_feature_matches_query($feature, 50.0, 8.0, 5.0, $bounds),
+        'A point inside the circle should match.'
+    );
+});
+```
+
+## Conventions
+
+- Use `test_assert_same($expected, $actual, $message)` for equality and `test_assert_true($condition, $message)` for booleans.
+- Build NOTAM fixtures with `test_make_feature($id, $lastUpdated, $geometry, $notamOverrides = [])`.
+- Test pure functions: cursor math, geometry, payload builders, normalization, parsing, etc. Don't add tests that need PDO or HTTP.
+- One assertion concern per case. Names should describe the invariant ("cursor never moves backwards"), not the function.
+- Don't add a framework (PHPUnit, Pest). Stay zero-dependency.

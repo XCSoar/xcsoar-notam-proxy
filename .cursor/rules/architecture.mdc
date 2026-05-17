@@ -1,0 +1,32 @@
+---
+description: High-level architecture and invariants of the xcsoar-notam-proxy project
+alwaysApply: true
+---
+
+# Project architecture
+
+Single-purpose PHP proxy that serves FAA NOTAM data to clients (notably XCSoar) from a **local MySQL/MariaDB cache**. User request rate is decoupled from FAA request rate.
+
+## Components
+
+- Web endpoints (DB-only):
+  - `notam.php` — main user query endpoint (GET + POST delta).
+  - `status.php` — JSON health summary.
+- Web endpoints (FAA-touching, off by default):
+  - `notam_live.php`, `notam_compare.php`, `faa_connectivity_test.php`.
+- CLI jobs:
+  - `sync_notams.php` — delta sync via `lastUpdatedDate`, every ~3 minutes.
+  - `reconcile_notams.php` — full GeoJSON refresh per classification, once daily.
+  - `check_cache_status.php` — read-only operator summary.
+- Shared library: `notam_lib.php` (procedural, all `notam_*` functions).
+- Tests: `tests/run.php` (pure PHP, no DB).
+
+## Invariants — do not violate
+
+- **`notam.php` and `status.php` MUST NOT call FAA.** They serve from `notam_items` only. Live FAA calls live in `notam_live.php`/`notam_compare.php`/CLI jobs.
+- **MySQL/MariaDB only.** `GET_LOCK`, `ON DUPLICATE KEY UPDATE`, `UTC_TIMESTAMP()`, multi-table `RENAME TABLE`, and `ENGINE=InnoDB` are intentional.
+- **One sync at a time.** Both CLI jobs acquire MySQL named lock `xcsoar_notam_sync`. Always release it in a catch block.
+- **Atomic reconcile.** Reconcile writes to staging table `notam_items_reconcile`, then swaps via `notam_swap_reconcile_stage_into_live`. Never mutate `notam_items` directly during reconcile.
+- **Delta cursor monotonicity.** Use `notam_compute_next_delta_cursor` (FAA `Date` header + max item `lastUpdated` − overlap). Never move backward.
+- **`.env` loads once** in `notam_lib.php` via `notam_load_dotenv()`. Real env vars take precedence.
+- **Production safety:** when `APP_ENV=production`, optional FAA-touching endpoints stay disabled until their shared secret is configured (`NOTAM_LIVE_PROXY_KEY`, `FAA_CONNECTIVITY_KEY`).
