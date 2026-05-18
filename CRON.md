@@ -9,7 +9,7 @@ Salt state `notam` installs **systemd timers** (`notam/timers.sls`):
 | `notam-sync.timer` | every 3 minutes | `sync_notams.php` |
 | `notam-reconcile.timer` | daily 02:17 | `reconcile_notams.php` |
 
-Services run as the `notam` user, set **`NOTAM_ENV_FILE`** to `/var/wwwusers/notam.xcsoar.org/.env`, and PHP **`notam_load_dotenv()`** parses that file (quoted `KEY="value"` lines from Salt are fine). Output goes to **journald** only.
+Services run as the `notam` user with **`EnvironmentFile=/var/wwwusers/notam.xcsoar.org/.env`** (Salt-managed; `KEY="value"` lines). PHP **`notam_load_dotenv()`** only sets variables not already in the environment. Output goes to **journald** only.
 
 ```bash
 journalctl -u notam-sync.service -u notam-reconcile.service -f
