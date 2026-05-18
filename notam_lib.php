@@ -81,6 +81,27 @@ function notam_load_dotenv(?string $path = null): void
     $loaded = true;
 }
 
+/**
+ * getenv() with optional default; strips surrounding quotes (systemd EnvironmentFile / dotenv).
+ */
+function notam_env(string $key, ?string $default = null): string
+{
+    $value = getenv($key);
+    if ($value === false || $value === '') {
+        return $default ?? '';
+    }
+
+    $value = trim($value);
+    if ($value !== '' && (
+        (str_starts_with($value, '"') && str_ends_with($value, '"')) ||
+        (str_starts_with($value, "'") && str_ends_with($value, "'"))
+    )) {
+        $value = substr($value, 1, -1);
+    }
+
+    return $value;
+}
+
 notam_load_dotenv();
 
 function notam_get_db_connection(): PDO
@@ -382,7 +403,7 @@ function notam_get_access_token(PDO $pdo, bool $forceRefresh = false): string
 
 function notam_require_geojson_format(): string
 {
-    $responseFormat = getenv('NMS_RESPONSE_FORMAT') ?: 'GEOJSON';
+    $responseFormat = notam_env('NMS_RESPONSE_FORMAT', 'GEOJSON');
     $responseFormat = strtoupper(trim($responseFormat));
     if ($responseFormat !== 'GEOJSON') {
         throw new InvalidArgumentException('Only GEOJSON is supported in local-cache mode');
