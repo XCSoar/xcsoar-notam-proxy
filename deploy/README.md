@@ -8,7 +8,7 @@ Salt `services.www` (pillar `www.domains` for this host) creates:
 
 After `state.apply`, issue a **Dehydrated** / ACME cert for `notam.xcsoar.org` (same flow as your other vhosts). DNS is already covered by your **wildcard** for `*.xcsoar.org`.
 
-Apache must be able to run PHP (e.g. `libapache2-mod-php8.2` + `php8.2-mysql` / `php8.2-curl`) if not already provided by another state on the box.
+Apache must be able to run PHP (e.g. `libapache2-mod-php8.4` + `php8.4-mysql` / `php8.4-curl` on Debian 13) if not already provided by another state on the box. Cron uses `notam_proxy:php_version` / `php_bin` (default 8.4).
 
 ## Salt deploy (preferred)
 
