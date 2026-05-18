@@ -31,7 +31,7 @@ Keep `.env` on the server only (path outside webroot or permissions); do not rsy
 
 ## Cron on server
 
-Salt **`notam-proxy/cron.sls`** (included from `notam-proxy`) installs the jobs from [CRON.md](../CRON.md) for the `notam` user:
+Salt **`notam/cron.sls`** (included from top-level `notam` state) installs the jobs from [CRON.md](../CRON.md) for the `notam` user:
 
 - **Delta sync:** every 3 minutes — `sync_notams.php` in `public_html`, log `../log/xcsoar-notam-sync.log`
 - **Reconcile:** daily at 02:17 — `reconcile_notams.php`, log `../log/xcsoar-notam-reconcile.log`

@@ -9,7 +9,7 @@ Example cron entries for this project:
 
 ## Salt (notam.xcsoar.org)
 
-On the XCSoar web host, `notam-proxy/cron.sls` installs these jobs for the `notam` user under `public_html`, with logs in `../log/` (sibling of `public_html`, outside the webroot). Disable via pillar `notam_proxy:cron_managed: False`. See `deploy/README.md`.
+On the XCSoar web host, Salt state `notam` (`notam/cron.sls`) installs these jobs for the `notam` user under `public_html`, with logs in `../log/` (sibling of `public_html`, outside the webroot). Disable via pillar `notam_proxy:cron_managed: False`. See `deploy/README.md`.
 
 ## Notes
 
