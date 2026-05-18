@@ -31,7 +31,7 @@ Keep `.env` on the server only (path outside webroot or permissions); do not rsy
 
 ## Systemd timers on server
 
-Salt **`notam/timers.sls`** installs `notam-sync.timer` (every 3 min) and `notam-reconcile.timer` (02:17 daily). Services load `../.env` and write output to **journald**:
+Salt **`notam/timers.sls`** installs `notam-sync.timer` (every 3 min) and `notam-reconcile.timer` (02:17 daily). Units set `NOTAM_ENV_FILE=../.env`; PHP parses it (not systemd `EnvironmentFile`). Logs go to **journald**:
 
 ```bash
 journalctl -u notam-sync.service -u notam-reconcile.service -f
