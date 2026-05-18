@@ -8,7 +8,7 @@ Salt `services.www` (pillar `www.domains` for this host) creates:
 
 After `state.apply`, issue a **Dehydrated** / ACME cert for `notam.xcsoar.org` (same flow as your other vhosts). DNS is already covered by your **wildcard** for `*.xcsoar.org`.
 
-Apache must be able to run PHP (e.g. `libapache2-mod-php8.4` + `php8.4-mysql` / `php8.4-curl` on Debian 13) if not already provided by another state on the box. Cron uses `notam_proxy:php_version` / `php_bin` (default 8.4).
+Apache must be able to run PHP (e.g. `libapache2-mod-php8.4` + `php8.4-mysql` / `php8.4-curl` on Debian 13) if not already provided by another state on the box. CLI timers use `notam_proxy:php_version` / `php_bin` (default 8.4).
 
 ## Salt deploy (preferred)
 
@@ -29,13 +29,14 @@ rsync -avz --delete \
 
 Keep `.env` on the server only (path outside webroot or permissions); do not rsync your local `.env`.
 
-## Cron on server
+## Systemd timers on server
 
-Salt **`notam/cron.sls`** (included from top-level `notam` state) installs the jobs from [CRON.md](../CRON.md) for the `notam` user:
+Salt **`notam/timers.sls`** installs `notam-sync.timer` (every 3 min) and `notam-reconcile.timer` (02:17 daily). Services load `../.env` and write output to **journald**:
 
-- **Delta sync:** every 3 minutes — sources `../.env`, then `sync_notams.php` in `public_html`, log `../log/xcsoar-notam-sync.log`
-- **Reconcile:** daily at 02:17 — sources `../.env`, then `reconcile_notams.php`, log `../log/xcsoar-notam-reconcile.log`
+```bash
+journalctl -u notam-sync.service -u notam-reconcile.service -f
+```
 
-Run **`reconcile_notams.php` once manually** before relying on the 3-minute delta job. Pillar: `notam_proxy:cron_managed: False` disables both; `cron_sync_enabled` / `cron_reconcile_enabled` toggle individually; `php_bin`, `log_dir` override defaults.
+Run **`reconcile_notams.php` once manually** before relying on the delta timer. Pillar: `notam_proxy:cron_managed: False` disables both; `cron_sync_enabled` / `cron_reconcile_enabled` toggle individually.
 
-For non-Salt hosts, use the shell examples in CRON.md.
+For non-Salt hosts, see [CRON.md](../CRON.md).
