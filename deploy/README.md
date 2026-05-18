@@ -31,4 +31,11 @@ Keep `.env` on the server only (path outside webroot or permissions); do not rsy
 
 ## Cron on server
 
-Run sync/reconcile via `cron` or `systemd` timers as `root` or a dedicated user, **not** from `public_html` if you prefer; if scripts live under `public_html`, restrict `.env` with file permissions.
+Salt **`notam-proxy/cron.sls`** (included from `notam-proxy`) installs the jobs from [CRON.md](../CRON.md) for the `notam` user:
+
+- **Delta sync:** every 3 minutes — `sync_notams.php` in `public_html`, log `../log/xcsoar-notam-sync.log`
+- **Reconcile:** daily at 02:17 — `reconcile_notams.php`, log `../log/xcsoar-notam-reconcile.log`
+
+Run **`reconcile_notams.php` once manually** before relying on the 3-minute delta job. Pillar: `notam_proxy:cron_managed: False` disables both; `cron_sync_enabled` / `cron_reconcile_enabled` toggle individually; `php_bin`, `log_dir` override defaults.
+
+For non-Salt hosts, use the shell examples in CRON.md.
