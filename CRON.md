@@ -3,8 +3,8 @@
 Example cron entries for this project:
 
 ```cron
-*/3 * * * * cd /path/to/xcsoar-notam-proxy && /usr/bin/php sync_notams.php >> ./log/xcsoar-notam-sync.log 2>&1
-17 2 * * * cd /path/to/xcsoar-notam-proxy && /usr/bin/php reconcile_notams.php >> ./log/xcsoar-notam-reconcile.log 2>&1
+*/3 * * * * cd /path/to/public_html && set -a && . /path/to/.env && set +a && /usr/bin/php sync_notams.php >> /path/to/log/xcsoar-notam-sync.log 2>&1
+17 2 * * * cd /path/to/public_html && set -a && . /path/to/.env && set +a && /usr/bin/php reconcile_notams.php >> /path/to/log/xcsoar-notam-reconcile.log 2>&1
 ```
 
 ## Salt (notam.xcsoar.org)
